@@ -1,7 +1,7 @@
 <?php
 namespace User;
 
-class Module extends \AfcCommons\Module
+class Module extends \Standard\Module
 {
 
     protected $_dir = __DIR__;
