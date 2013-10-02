@@ -12,7 +12,14 @@ abstract class AbstractController extends AbstractActionController {
 	 */
 	protected $em;
 	protected $_user;
-	
+	protected $acceptCriteria = array(
+			'Zend\View\Model\ViewModel' => array(
+					'text/html'
+			),
+			'Zend\View\Model\JsonModel' => array(
+					'application/json'
+			)
+	);
 	public function setEntityManager(EntityManager $em) {
 		$this->em = $em;
 	}

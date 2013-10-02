@@ -76,6 +76,11 @@ return array(
             'Application\Controller\Index' => 'Application\Controller\IndexController'
         ),
     ),
+    'controller_plugins' => array (
+            'invokables' => array (
+                    'BootstrapLinks' => 'Application\Controller\Plugin\BootstrapLinks'
+            )
+    ),
     'view_manager' => array(
         'display_not_found_reason' => true,
         'display_exceptions'       => true,
@@ -85,6 +90,8 @@ return array(
         'template_map' => array(
             'layout/layout'           => __DIR__ . '/../view/layout/layout.phtml',
             'login/layout'            => __DIR__ . '/../view/layout/login-layout.phtml',
+            'main/navigation'        => __DIR__ . '/../view/layout/navigation.phtml',
+            'main/breadcrumb'        => __DIR__ . '/../view/layout/breadcrumb.phtml',
             'application/index/index' => __DIR__ . '/../view/application/index/index.phtml',
             'error/404'               => __DIR__ . '/../view/error/404.phtml',
             'error/index'             => __DIR__ . '/../view/error/index.phtml',

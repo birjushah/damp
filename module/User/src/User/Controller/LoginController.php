@@ -2,26 +2,32 @@
 namespace User\Controller;
 
 use Standard\Controller\AbstractController;
-use Zend\View\Model\ViewModel;
+use Standard\StaticOptions\StaticOptions;
+use DoctrineModule\Authentication\Adapter\ObjectRepository;
+use Standard\Permissions\Acl\Acl;
 
 class LoginController extends AbstractController
 {
 
     public function indexAction ()
     {
+        $this->layout('login/layout');
+        $redirectUrl = "/";
         $loginFormFilter = new \User\FormFilter\LoginFormFilter();
         
         $loginForm = new \User\Form\LoginForm();
         $loginForm->setInputFilter($loginFormFilter->getInputFilter());
         $request = $this->getRequest();
-		$message = '';
+        $response = array();
+        $response["success"] = false;
+        $response["message"] = "Invalid Credentials";
         if ($request->isPost()) {
             $loginForm->setData($request->getPost());
             if ($loginForm->isValid()) {
                 $data = $loginForm->getData();
                 
                 // Configure Doctrine Adapter for authentication
-                $doctrineAdapter = new \DoctrineModule\Authentication\Adapter\ObjectRepository();
+                $doctrineAdapter = new ObjectRepository();
                 $config = $this->getServiceLocator()->get('Config');
                 $config = $config['doctrine']['authenticationadapter']['odm_default'];
                 
@@ -32,7 +38,7 @@ class LoginController extends AbstractController
                 $doctrineAdapter->setOptions($config);
                 
                 // Set the received credentials
-                $doctrineAdapter->setIdentityValue((string) $data['username']);
+                $doctrineAdapter->setIdentityValue((string) $data['email']);
                 $doctrineAdapter->setCredentialValue((string) $data['password']);
                 
                 
@@ -44,25 +50,40 @@ class LoginController extends AbstractController
                 $authService = $userAuth->getAuthService();
                 $authenticationResult = $authService->authenticate($userAuth->getAuthAdapter());
                 if ($authenticationResult->isValid()) {
+                    
                     $user = $authenticationResult->getIdentity();
-                    return $this->redirect()->toRoute('admin', array(
-							'controller' => 'index',
+                    StaticOptions::setCurrentUser($user);
+                    if(Acl::$groups[$user->getGroupId()] == "ADMINISTRATOR"){
+                        $redirectUrl = $this->url()->fromRoute('user', array(
+							'controller' => 'manage',
 							'action' => 'index'
-					));
-                } else {
-					$message = "Invalid Credentials";
+						));
+                    } else {
+                    	$redirectUrl = $this->url()->fromRoute('user', array(
+	                        'controller' => 'manager',
+	                        'action' => 'dashboard'
+	                    ));
+                    }
+                    $response["success"] = true;
+                    $response["message"] = "Login successfull. Redirecting to dashboard";
+                    
+                    if(!$request->isXmlHttpRequest()){
+                    	return $this->redirect()->toUrl($redirectUrl);
+                    }
                 }
             } else {
-                $message = $loginForm->getMessages();
-                die();
+                $response["message"] = $loginForm->getMessages();
             }
         }
-        $this->layout("login/layout");
-        $view = new ViewModel(array(
+        
+        $viewModel = $this->acceptableViewModelSelector($this->acceptCriteria);
+        
+        $viewModel->setVariables(array(
             'loginForm' => $loginForm,
-			'message' => $message
+            'response' => $response,
+            'redirect_url' => $redirectUrl 
         ));
         
-        return $view;
+        return $viewModel;
     }
 }

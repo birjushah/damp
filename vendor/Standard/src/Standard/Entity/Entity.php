@@ -298,157 +298,108 @@ abstract class Entity {
      *
      * @param \Zend\Http\PhpEnvironment\Request $request            
      */
-    public function getGridData (\Zend\Http\PhpEnvironment\Request $request, array $options = array(), $where = null, \Doctrine\ORM\QueryBuilder $select = null)
+public function getGridData (\Zend\Http\PhpEnvironment\Request $request, array $options = array())
     {
-        $em = $this->getEntityManager();
-        
-        $gridInitialData = $this->getIntialGridConditions($request, $options, $where, $select);
-        
-        // Get the where condition
-        $where = $gridInitialData["where"];
-        
-        // Get the count
-        $count = (int) $gridInitialData["count"];
-        
-        // Get offset
-        $offset = (int) $gridInitialData["offset"];
-        
-        // Get the order
-        $order = $gridInitialData["order"];
+        $gridInitialData = $this->getIntialGridConditions($request, $options);
         
         $total = 0;
         $totalFiltered = 0;
-        if ($select === null) {
-            
-            $qb = $em->createQueryBuilder(get_class($this));
-            $connection = $em->getConnection();
-            
-            // $qb = new \Doctrine\ORM\QueryBuilder();
-            $qb->from($this->getTableName(), "");
-            $qb->select("count(".$this->getPrimaryKeyColumnName().") as total");
-            $resultArray = $connection->executeQuery($qb->getDQL())
-            ->fetchAll();
-            
-            $total = $resultArray[0]["total"];
-            
-            $qb->where($where);
-            
-            $resultArray = $connection->executeQuery($qb->getDQL())
-            ->fetchAll();
-            
-            $totalFiltered = $resultArray[0]["total"];
-            
-            $qb->select("*");
-            
-            // Add all the orders to the orderby condition
-            $orders = explode(",", $order);
-            foreach ($orders as $eachOrder) {
-                $eachOrder = trim($eachOrder);
-                if ($eachOrder != null) {
-                    list ($orderColumn, $orderType) = explode(" ", $eachOrder);
-                    $qb->addOrderBy($orderColumn, $orderType);
-                }
+        
+        $sql = $this->getGridSql($gridInitialData);
+        
+        $totalRecordSql = $this->getTotalRecordSql($gridInitialData);
+        
+        $filteredRecordSql = $this->getFilteredRecordSql($gridInitialData);
+        
+        if ($sql instanceof \Doctrine\ORM\QueryBuilder) {
+            $selectQuery = $sql->getDQL();
+        } else 
+            if (is_string($sql)) {
+                $selectQuery = $sql;
+            } else {
+                throw new \PDOException("Invalid SQL Query: " . $sql, 500);
             }
-            
-            // Set the max result OR limit to the query
-            $qb->setMaxResults($count);
-            
-            // Set the offset for the result
-            $qb->setFirstResult($offset);
-
-            /*
-             * @todo:- this is serios patch about limiting record in Doctrine
-             * */
-            $sql = $qb->getDQL()." LIMIT ".$offset.",".$count;
-
-            $resultArray = $connection->executeQuery($sql)
-                ->fetchAll();
-        ///below code is added for the condition to manage queryvilder option
-        }else{
-            $connection = $em->getConnection();
-
-            //$select->select("count(*) as total");
-            $resultArray = $connection->executeQuery($select->getDQL())
-                ->rowCount();
-
-            $total = $resultArray;
-
-            $select->where($where);
-
-            $resultArray = $connection->executeQuery($select->getDQL())
-                ->rowCount();
-
-            $totalFiltered = $resultArray;
-
-            // Add all the orders to the orderby condition
-            $orders = explode(",", $order);
-            foreach ($orders as $eachOrder) {
-                $eachOrder = trim($eachOrder);
-                if ($eachOrder != null) {
-                    list ($orderColumn, $orderType) = explode(" ", $eachOrder);
-                    $select->addOrderBy($orderColumn, $orderType);
-                }
-            }
-            // Set the offset for the result
-            $select->setFirstResult($offset);
-
-            // Set the max result OR limit to the query
-            $select->setMaxResults($count);
-            //$results = new Paginator($select);
-            /*
-             * @todo:- this is serios patch about limiting record in Doctrine
-             * */
-            $sql = $select->getDQL()." LIMIT ".$offset.",".$count;
-			
-            $resultArray = $connection->executeQuery($sql )
-                ->fetchAll();
-
+        
+        $this->_dtResultArray = $resultArray = $this->getEntityManager()
+            ->getConnection()
+            ->executeQuery($selectQuery)
+            ->fetchAll();
+        
+        $gridData = $this->filterGridResult();
+        
+        // Calculate total Total Results without any where clause
+        $totalRecordResult = $this->getEntityManager()
+            ->getConnection()
+            ->executeQuery($totalRecordSql)
+            ->fetchAll();
+        $totalRecordResult = array_pop($totalRecordResult);
+        if(!$totalRecordResult){
+            $totalRecords = 0;
+        } else {
+            $totalRecords = $totalRecordResult['total_records'];
         }
         
-        $gridData = $this->filterGridResult($options,$resultArray);
+        // Calculate Filtered Records with filtered where clause
+        $filteredRecordResult = $this->getEntityManager()
+        ->getConnection()
+        ->executeQuery($filteredRecordSql)
+        ->fetchAll();
+        
+        $filteredRecordResult = array_pop($filteredRecordResult);
+        if(!$filteredRecordResult){
+            $filteredRecords = 0;
+        } else {
+            $filteredRecords = $totalRecordResult['total_records'];
+        }
         
         $finalGridData["sEcho"] = $request->getPost("sEcho", 1);
-        $finalGridData["iTotalRecords"] = $total;
-        $finalGridData["iTotalDisplayRecords"] = $totalFiltered;
+        $finalGridData["iTotalRecords"] = $totalRecords;
+        $finalGridData["iTotalDisplayRecords"] = $filteredRecords;
         $finalGridData["aaData"] = $gridData;
-        
         return $finalGridData;
     }
 
-    public function getIntialGridConditions (\Zend\Http\PhpEnvironment\Request $request, array $options = array(), $where = null, \Doctrine\ORM\QueryBuilder $select = null)
+    public function getIntialGridConditions (\Zend\Http\PhpEnvironment\Request $request, array $options = array())
     {
-        $em = $this->getEntityManager();
+        // Store the options in common variable in class
+        $this->_dtOptions = $options;
         
         // Calculate Columns required
         $originalColumns = $request->getPost('sColumns', "*");
-        $originalColumns = explode(",", $originalColumns);
-        $this->_gridOriginalColumns = $originalColumns;
         
-        // Get the id columns which are not included in sql query
-        $idColumns = isset($options["column"]) && isset($options["column"]["id"]) ? $options["column"]["id"] : array();
+        // Array of original colums requested from the datatables
+        $originalColumns = explode(",", $originalColumns);
+        
+        $this->_dtOriginalColumns = $originalColumns;
+        
+        // Get the columns which should not be included in sql query and should
+        // hold the array result of query to be executed. Normally one column is
+        // usefull for the purpose
+        $queryResultColumns = isset($options["column"]) && isset($options["column"]["query_result"]) ? $options["column"]["query_result"] : array();
         
         // Filter colums to list that are only required for sql query
-        $columns = array_filter($originalColumns, function  ($value) use( $idColumns)
+        $this->_dtQueryColumns = $columns = array_filter($originalColumns, function  ($value) use( $queryResultColumns)
         {
-            return ($value != "" && ! in_array($value, $idColumns));
+            return ($value != "" && ! in_array($value, $queryResultColumns));
         });
         
         // Applying Sorting
         $order = "";
         
-        // Sorting columns
+        // Get the sort columns
         $iSortingCols = $request->getPost('iSortingCols');
         
-        //
         for ($i = 0; $i < intval($iSortingCols); $i ++) {
             if ($request->getPost("bSortable_" . $request->getPost('iSortCol_' . $i), false)) {
                 $order .= $columns[$request->getPost('iSortCol_' . $i)] . " " . $request->getPost('sSortDir_' . $i) . ", ";
             }
         }
         // Change sOrder back to null
-        $order = $order == "" ? null : $order;
+        $order = $order == "" ? "" : substr_replace($order, "", - 2);
         
         // Extract Searching Fields
+        // Extract the columns that are requested by datatbles for searching and
+        // don't have null or empty value
         $allParams = $request->getPost()->toArray();
         $searchParams = array_filter($allParams, function  ($key) use( &$allParams)
         {
@@ -461,13 +412,6 @@ abstract class Entity {
             }
         });
         
-        // Check for replace columns bbefore setting data to data grid
-        $replaceColumns = false;
-        if (isset($options["column"]) && isset($options["column"]["replace"])) {
-            $replaceColumns = array_keys($options["column"]["replace"]);
-        }
-        $this->_gridReplaceColumns = $replaceColumns;
-        
         // Check for replace Search type before setting data to data grid
         $searchTypeColumns = false;
         if (isset($options["search_type"])) {
@@ -475,78 +419,33 @@ abstract class Entity {
         }
         
         // Searching
+        // Get the where clause from options
+        $where = isset($options["where"]) ? $options["where"] : "";
         if (! empty($searchParams)) {
-            if ($where == "") {
-                $where .= " (";
-            } else {
-                $where .= " AND (";
+            if ($where != "") {
+                $where .= " AND ";
             }
-            // Before Search Params
-            foreach ($searchParams as $searchColumn => $searchValue) {
-                if (is_array($searchValue)) {
-                    foreach ($searchValue as $key => $value) {
-                        $searchParams[$searchColumn . "." . $key] = $value;
-                    }
-                    unset($searchParams[$searchColumn]);
-                }
-            }
+            $where .= " ( ";
             
             foreach ($searchParams as $searchColumn => $searchValue) {
                 $searchColumn = substr($searchColumn, strlen("search_"));
                 
                 // Creating custom search for replacement properties
-                if ($replaceColumns && in_array($searchColumn, $replaceColumns)) {
-                    $filterReplaceColumns = $options['column']['replace'][$searchColumn];
-                    $searchArray = array_filter($filterReplaceColumns, function  ($data) use( &$filterReplaceColumns, $searchValue)
-                    {
-                        if (strpos(strtolower(current($filterReplaceColumns)), strtolower($searchValue)) !== false) {
-                            next($filterReplaceColumns);
-                            return true;
+                if (is_array($searchTypeColumns) && in_array($searchColumn, $searchTypeColumns)) {
+                    if ($options['search_type'][$searchColumn] == "=") {
+                        $where .= $searchColumn . " = '" . $searchValue . "' AND ";
+                    } else 
+                        if ($options['search_type'][$searchColumn] == "LIKE") {
+                            $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
                         }
-                        next($filterReplaceColumns);
-                        return false;
-                    });
-                    if (! empty($searchArray)) {
-                        $where .= "( ( ";
-                        foreach ($searchArray as $key => $value) {
-                            if (is_array($searchTypeColumns) && in_array($searchColumn, $searchTypeColumns)) {
-                                if ($options['search_type'][$searchColumn] == "=") {
-                                    $where .= $searchColumn . " = '" . $searchValue . "' AND ";
-                                } else 
-                                    if ($options['search_type'][$searchColumn] == "LIKE") {
-                                        $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
-                                    }
-                            } else {
-                                $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
-                            }
-                        }
-                        $where = substr_replace($where, "", - 4);
-                        $where .= " ) ) AND ";
-                        //$where .= " ) OR " . $searchColumn . " LIKE '%" . $searchValue . "%' ) AND ";
-                    } else {
-                        $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
-                    }
                 } else {
-                    /**
-                     *
-                     * @todo : need to fix by TB urf (Tirth Bodawala)
-                     */
-                    if (is_array($searchTypeColumns) && in_array($searchColumn, $searchTypeColumns)) {
-                        if ($options['search_type'][$searchColumn] == "=") {
-                            $where .= $searchColumn . " = '" . $searchValue . "' AND ";
-                        } else 
-                            if ($options['search_type'][$searchColumn] == "LIKE") {
-                                $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
-                            }
-                    } else {
-                        $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
-                    }
+                    $where .= $searchColumn . " LIKE '%" . $searchValue . "%' AND ";
                 }
             }
             $where = substr_replace($where, "", - 4);
             $where .= ") ";
         }
-        $where = $where == "" ? "1=1" : $where;
+        $where = $where == "" ? " 1=1 " : $where;
         
         // Get the data from database
         $count = $request->getPost("iDisplayLength", 10);
@@ -562,30 +461,26 @@ abstract class Entity {
         );
     }
 
-    public function filterGridResult (array $options = array(), array $resultArray = array())
+    public function filterGridResult ()
     {
-        $originalColumns = $this->_gridOriginalColumns;
+        $originalColumns = $this->_dtOriginalColumns ? $this->_dtOriginalColumns : array();
         
-        $replaceColumns = $this->_gridReplaceColumns;
+        $options = $this->_dtOptions ? $this->_dtOptions : array();
+        
+        $resultArray = $this->_dtResultArray ? $this->_dtResultArray : array();
         
         $gridData = array();
         if ($resultArray) {
             foreach ($resultArray as $result) {
                 $record = array();
                 foreach ($originalColumns as $column) {
-                    if (isset($options["column"]) && isset($options["column"]["id"]) && in_array($column, $options["column"]["id"])) {
+                    if (isset($options["column"]) && isset($options["column"]["query_result"]) && in_array($column, $options["column"]["query_result"])) {
                         $record[] = $result;
                     } else 
                         if (isset($options["column"]) && isset($options["column"]["ignore"]) && in_array($column, $options["column"]["ignore"])) {
                             $record[] = "";
                         } else {
-                            $columnValue = $result[$column];
-                            
-                            if ($replaceColumns && in_array($column, $replaceColumns) && isset($options["column"]["replace"][$column][$columnValue])) {
-                                $record[] = $options["column"]["replace"][$column][$columnValue];
-                            } else {
-                                $record[] = $columnValue;
-                            }
+                            $record[] = $result[$column];
                         }
                 }
                 $gridData[] = $record;
