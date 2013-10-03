@@ -35,7 +35,7 @@ class ManageController extends AbstractController{
 	{
 		$user_id = (int)$this->params()->fromRoute('id');
 		$em = $this->getEntityManager();
-		$user = $em->getRepository('User\Entity\User')->findOneBy(array(
+		$user = $em->getRepository('Standard\Entity\User')->findOneBy(array(
 				'user_id' => $user_id
 		));
 		$form = new ManageForm();
@@ -53,7 +53,7 @@ class ManageController extends AbstractController{
 				'addForm' => $form
 		));
 		$view->setVariable('pageTitle', 'Edit Manager');
-		$view->setTemplate('user/manager/add_edit');
+		$view->setTemplate('user/manage/add_edit');
 		return $view;
 	}
 	
@@ -101,7 +101,7 @@ class ManageController extends AbstractController{
 				$data = $form->getData();
 				$em = $this->getEntityManager();
 				if ($data['user_id'] != "") {
-					$user = $em->getRepository('User\Entity\User')->find($data['user_id']);
+					$user = $em->getRepository('Standard\Entity\User')->find($data['user_id']);
 				} else {
 					$user = new User();
 				}

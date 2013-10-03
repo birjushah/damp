@@ -20,6 +20,13 @@ return array(
                         'ADMINISTRATOR'
                     )
                 )
+            ),
+            'Insurance\Controller\Insurance' => array(
+                'all' => array(
+                        'groups' => array(
+                                'ADMINISTRATOR'
+                        )
+                )
             )
         )
     )

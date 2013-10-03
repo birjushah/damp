@@ -39,7 +39,36 @@ return array (
                 								'visible' => false
                 						)
                 				)
-                		)
+                		),
+                        array (
+                                'label' => 'Insurance Company',
+                                'route' => 'insurance',
+                                'controller' => 'insurance',
+                                'action' => 'index',
+                                'resource' => 'Insurance\Controller\Insurance',
+                                'privilege' => 'index',
+                                'order' => 2,
+                                'pages' => array (
+                                        array (
+            								'label' => 'Add Insurance Company',
+            								'route' => 'insurance',
+            								'controller' => 'insurance',
+            								'action' => 'add',
+            								'resource' => 'Insurance\Controller\Insurance',
+            								'privilege' => 'add',
+            								'visible' => false
+                                        ),
+                                        array (
+            								'label' => 'Add Insurance Company',
+            								'route' => 'insurance/wildcard',
+            								'controller' => 'insurance',
+            								'action' => 'edit',
+            								'resource' => 'Insurance\Controller\Insurance',
+            								'privilege' => 'edit',
+            								'visible' => false
+                                        )
+                                )
+                        )
                 )
         ) 
 );
