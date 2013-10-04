@@ -59,9 +59,9 @@ class LoginController extends AbstractController
 							'action' => 'index'
 						));
                     } else {
-                    	$redirectUrl = $this->url()->fromRoute('user', array(
-	                        'controller' => 'manager',
-	                        'action' => 'dashboard'
+                    	$redirectUrl = $this->url()->fromRoute('insurance', array(
+	                        'controller' => 'insurance',
+	                        'action' => 'index'
 	                    ));
                     }
                     $response["success"] = true;

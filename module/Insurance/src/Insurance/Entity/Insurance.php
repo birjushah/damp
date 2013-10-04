@@ -30,7 +30,7 @@ class Insurance extends Entity {
 	 */
 	public $phone;
 	/**
-     * @ORM\Column(type="integer");
+     * @ORM\Column(type="string");
      */
     public $reference;
 	
@@ -47,11 +47,11 @@ class Insurance extends Entity {
 	 */
 	public $mobile;
 	/**
-	 * @ORM\Column(type="integer");
+	 * @ORM\Column(type="string");
 	 */
 	public $latitude;
 	/**
-	 * @ORM\Column(type="integer");
+	 * @ORM\Column(type="string");
 	 */
 	public $longitude;
 	/**
@@ -74,4 +74,54 @@ class Insurance extends Entity {
 	 */
 	public $last_updated_by;
 	
+	public function getGridSql (array $gridInitialData = array())
+	{
+		// Get the where condition
+		$where = $gridInitialData["where"];
+	
+		// Get the count
+		$count = $gridInitialData["count"];
+	
+		// Get offset
+		$offset = $gridInitialData["offset"];
+	
+		// Get the order
+		$order = $gridInitialData["order"];
+	
+		$em = $this->getEntityManager();
+	
+		$to = $count + $offset;
+		if ($order != null) {
+			$order = "ORDER BY " . $order;
+		}
+	
+		$sql = "SELECT
+		i.*
+		FROM
+		insurance i
+		WHERE {$where} {$order} LIMIT {$offset},{$to}";
+		return $sql;
+		}
+	
+		public function getFilteredRecordSql (array $gridInitialData = array())
+		{
+		// Get the where condition
+		$where = $gridInitialData["where"];
+	
+			$sql = "SELECT
+			count(*) as total_records
+			FROM
+			user i
+			WHERE {$where}";
+			return $sql;
+		}
+	
+		public function getTotalRecordSql ()
+		{
+			$sql = "SELECT
+			count(*) as total_records
+				FROM
+				insurance i";
+				return $sql;
+		}
 }

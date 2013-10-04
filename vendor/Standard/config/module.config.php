@@ -23,9 +23,10 @@ return array(
             ),
             'Insurance\Controller\Insurance' => array(
                 'all' => array(
-                        'groups' => array(
-                                'ADMINISTRATOR'
-                        )
+                  	'groups' => array(
+                    	'ADMINISTRATOR',
+                  			'USER'
+                    )
                 )
             )
         )

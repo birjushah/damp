@@ -12,7 +12,7 @@ return array (
                                 'order' => 1 
                         ),
                 		array (
-                				'label' => 'Manage',
+                				'label' => 'Manage Users',
                 				'route' => 'user',
                 				'controller' => 'manage',
                 				'action' => 'index',
