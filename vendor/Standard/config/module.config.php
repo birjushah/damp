@@ -28,7 +28,39 @@ return array(
                   			'USER'
                     )
                 )
-            )
+            ),
+        	'Broker\Controller\Broker' => array(
+        			'all' => array(
+        					'groups' => array(
+        							'ADMINISTRATOR',
+        							'USER'
+        					)
+        			)
+        	),
+        	'Agent\Controller\Agent' => array(
+        			'all' => array(
+        					'groups' => array(
+        							'ADMINISTRATOR',
+        							'USER'
+        					)
+        			)
+        	),
+        	'Department\Controller\Department' => array(
+        			'all' => array(
+        					'groups' => array(
+        							'ADMINISTRATOR',
+        							'USER'
+        					)
+        			)
+        	),
+        	'Builder\Controller\Builder' => array(
+        			'all' => array(
+        					'groups' => array(
+        							'ADMINISTRATOR',
+        							'USER'
+        					)
+        			)
+        	)
         )
     )
-);
+);	

@@ -24,9 +24,9 @@ echo $this->headScript ()
     ->prependFile ( $this->basePath () . '/libs/blockui/js/message.js' )
     ->prependFile ( $this->basePath () . '/libs/blockui/js/blockui.js' )
     ->prependFile ( $this->basePath () . '/libs/bootstrap/js/bootstrap.min.js' )
-    ->prependFile ( $this->basePath () . '/js/gmap3.min.js' )
+    //->prependFile ( $this->basePath () . '/js/gmap3.min.js' )
     ->prependFile ( $this->basePath () . '/libs/jquery/js/jquery-2.0.3.min.js' )
-    ->prependFile ( "http://maps.google.com/maps/api/js?sensor=false&amp;language=en" )
+    //->prependFile ( "http://maps.google.com/maps/api/js?sensor=false&amp;language=en" )
 ?>
 </head>
 <body>
@@ -87,7 +87,7 @@ echo $this->headScript ()
         	<hr />
 		</div>
 		<footer>
-			<p class="text-center">&copy; 2012 - <?php echo date('Y') ?> by XYZ Group Inc. <?php echo $this->translate('All rights reserved.') ?></p>
+			<p class="text-center">&copy; 2012 - <?php echo date('Y') ?> by Dotz Group Inc. <?php echo $this->translate('All rights reserved.') ?></p>
 			<p class="pull-right hide"><?php echo $this->translate('Powered By: ') ?><a
 					target="_blank" href="http://www.xyz.com"><strong>XYZ Technologies</strong></a>
 			</p>
