@@ -175,7 +175,7 @@ return array (
                 				'order' => 5,
                 				'pages' => array (
                 						array (
-                								'label' => 'Add Builder',
+                								'label' => 'Add Building',
                 								'route' => 'builder',
                 								'controller' => 'builder',
                 								'action' => 'add',
@@ -184,7 +184,7 @@ return array (
                 								'visible' => false
                 						),
                 						array (
-                								'label' => 'Edit Builder',
+                								'label' => 'Edit Building',
                 								'route' => 'builder/wildcard',
                 								'controller' => 'builder',
                 								'action' => 'edit',

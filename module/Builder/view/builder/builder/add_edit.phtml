@@ -9,26 +9,42 @@
     line-height: 100px;
     margin: 35px;
     width: 128px;
+    display:none;
 }
 #garden, #hall{
 	width:415px;
+	display:none;
 }
-#raw,#building {
+#raw,#building,#rawoffice {
 	min-height: 300px;
 	min-width: 443px;
 	background-color: #F5F5F5;
 	display: inline-block;
+	border: 1px solid #F5E6F5;
+	
 }
-
+#floor1,#floor2,#floor3{
+	min-width:443px;
+	min-height:200px;
+	background-color: #FFE4B5;
+	margin:8px;
+	line-height:2;
+	font-size:15px;
+	text-align:center;
+	display:inline-block;
+}
 #raw {
 	margin-left: 40px;
 	padding:20px;
+	display:none;
 }
 
 #building {
 	margin-left: 125px;
 	padding:20px;
 	background-color:#FFE4B5;
+	border:1px solid #B2BDFF;
+	display:none;
 }
 
 .draggable {
@@ -39,9 +55,12 @@
 	color: #FFFFFF;
 	margin: 8px;
 	text-align: center;
-	line-height:150px;
 	font-size:15px;
 }
+.editablespan{
+	margin:65px 0 0 83px;
+}
+
 </style>
 <?php $form = $this->addForm;?>
 <div class="title">
@@ -78,11 +97,24 @@
 					<div class='draggable' id='garden'>Garden</div>
 					<div class='draggable' id='carshade'>Car Shade</div>
 				</div>
+				<div id='rawoffice' class='officeconnector'>
+					<div class='draggable' id='office'>
+						<span class='editablespan'>Office</span>
+					</div>
+					<div class='draggable' id='shop'>
+						<span class='editablespan'>Shop</span>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class='span5'>
 			<div class="control-group">
 				<div id='building' class='droppable connectedSortable'></div>
+				<div id='office'>
+					<div id='floor1' class='officeconnected'><p>Floor 1</p></div>
+					<div id='floor2' class='officeconnected'>Floor 2</div>
+					<div id='floor3' class='officeconnected'>Floor 3</div>
+				</div>
 			</div>
 		</div>
 		<div class='span12'>
@@ -118,6 +150,9 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function(){
+	//Checking what kind of building it is
+	buildingType = $('select[name=type]').val();
+	//sending structure of residence while submiting form
 	var structure = "<?php echo isset($this->structure)?$this->structure:"null"; ?>";
 	if(structure.length != 0){
 		var arraystructure = structure.split(',');
@@ -125,6 +160,7 @@ $(document).ready(function(){
 			$('#building').append("<div id='"+value+"' class='draggable' style=''>"+value+"</div>")
 		});
 	}
+	//creating residence builder
 	$( "#raw" ).sortable({
         connectWith: ".connectedSortable",
         remove: function(event, ui) {
@@ -133,14 +169,56 @@ $(document).ready(function(){
         }
     }).disableSelection();
 
-	$( "#building" ).sortable({
+	/*$( "#building" ).sortable({
         connectWith: ".connectedSortable"
+    }).disableSelection();*/
+
+    //For building Office
+   	$( "#rawoffice" ).sortable({
+        connectWith: ".officeconnected",
     }).disableSelection();
+
+	$( ".officeconnected" ).sortable({
+        connectWith: ".officeconnector",
+        receive: function(event, ui) {
+            ui.item.clone().appendTo('#rawoffice').find('.ui-resizable-handle').remove().end().resizable({
+				containment:'.officeconnected'	
+            });
+        }
+    }).disableSelection();
+	
+	$(document).on('dblclick','.draggable span', function() {
+        $(this).attr('contentEditable', true);
+        $(this).focus();
+    }).blur(function(){
+        $(this).attr('contentEditable', false);
+        $(this).focusout();
+    });
+
+    $('.draggable').resizable({
+		containment:'.officeconnected'
+    });
+    
 	$(document).on("submit","#frm_manage",function(e){
 		if(!e.isDefaultPrevented()){
 			var companyForm = $(this);
-			var buildingstructure = $('#building').sortable("toArray");
-			structure = buildingstructure + "";
+			if(buildingType == 'Commercial'){
+				str = "";
+				$('#floor1 .draggable').each(function(k,el){
+					var blocks = [];
+					blocks.push($(this).find('span').text().trim());
+				    blocks.push($(this).height());
+				    blocks.push($(this).width());
+				    str += blocks.join(",");
+				    str += '$'; 
+				});
+				str = str.substring(0, str.length - 1);
+				console.log(str);
+				return false;
+			}else{
+				floor1 = $('#floor1').sortable("toArray");
+				structure = buildingstructure + "";	
+			}
 			var message = false;
 			companyForm.queue(function(next){
 				message = new Message({
